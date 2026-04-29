@@ -1,0 +1,8 @@
+# example.py
+matplotlib==3.9.3
+# VSCode y Jupyter Lab
+ipykernel==6.29.5
+jupyterlab==4.3.5
+jupyterlab-lsp==5.1.0
+jedi-language-server==0.41.4
+marimo==0.23.0
