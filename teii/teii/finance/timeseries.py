@@ -116,12 +116,10 @@ class TimeSeriesFinanceClient(FinanceClient):
 
         series = self._data_frame['volume']
 
-        # TODO
-        #   Comprueba que from_date <= to_date y genera excepción
-        #   'FinanceClientParamError' en caso de error
-
-        # FIXME: type hint error
         if from_date is not None and to_date is not None:
+            if from_date > to_date:
+                raise FinanceClientParamError(
+                    f"from_date ({from_date}) must be earlier than or equal to to_date ({to_date})")
             series = series.loc[from_date:to_date]   # type: ignore
 
         return series
