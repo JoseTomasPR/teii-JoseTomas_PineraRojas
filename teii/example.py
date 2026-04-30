@@ -12,12 +12,13 @@ import teii.finance as tf
 def setup_logging(logging_level_app, logging_level_lib):
     """ Crea y configura logger enviando la salida a example.log. """
 
-    logging.basicConfig(
-        filename='example.log',
-        filemode='w',
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        level=logging.DEBUG
-    )
+    handler = logging.FileHandler('example.log', mode='w')
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    root.addHandler(handler)
 
     # Nivel independiente para la librería teii.finance
     logging.getLogger('teii.finance').setLevel(logging_level_lib)
