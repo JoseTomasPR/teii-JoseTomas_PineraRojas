@@ -82,17 +82,37 @@ def test_weekly_price_dates(api_key_str,
 
 def test_weekly_volume_invalid_dates(api_key_str,
                                      mocked_requests):
-    # TODO
-    pass
+    fc = TimeSeriesFinanceClient("NVDA", api_key_str)
+
+    with pytest.raises(FinanceClientParamError):
+        fc.weekly_volume(dt.date(year=2026, month=1, day=1),
+                         dt.date(year=2025, month=1, day=1))
 
 
 def test_weekly_volume_no_dates(api_key_str,
-                                mocked_requests):
-    # TODO
-    pass
+                                mocked_requests,
+                                pandas_series_NVDA_volumes):
+    fc = TimeSeriesFinanceClient("NVDA", api_key_str)
+
+    ps = fc.weekly_volume()
+
+    assert ps.count() == 1378   # 1999-11-12 to 2026-04-02 (1378 business weeks)
+
+    assert ps.count() == pandas_series_NVDA_volumes.count()
+
+    assert_series_equal(ps, pandas_series_NVDA_volumes)
 
 
 def test_weekly_volume_dates(api_key_str,
-                             mocked_requests):
-    # TODO
-    pass
+                             mocked_requests,
+                             pandas_series_NVDA_volumes_filtered):
+    fc = TimeSeriesFinanceClient("NVDA", api_key_str)
+
+    ps = fc.weekly_volume(dt.date(year=2025, month=4, day=1),
+                          dt.date(year=2026, month=3, day=31))
+
+    assert ps.count() == 52    # 2025-04-04 to 2026-03-27 (52 business weeks)
+
+    assert ps.count() == pandas_series_NVDA_volumes_filtered.count()
+
+    assert_series_equal(ps, pandas_series_NVDA_volumes_filtered)
