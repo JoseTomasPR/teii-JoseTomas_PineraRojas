@@ -10,7 +10,8 @@ from pandas.testing import assert_series_equal
 
 import teii.finance.finance
 from teii.finance import (FinanceClientAPIError, FinanceClientInvalidAPIKey,
-                          FinanceClientInvalidData, TimeSeriesFinanceClient)
+                          FinanceClientInvalidData, FinanceClientParamError,
+                          TimeSeriesFinanceClient)
 
 
 def test_constructor_success(api_key_str,
@@ -43,8 +44,11 @@ def test_constructor_invalid_data(api_key_str, mocked_requests):
 
 def test_weekly_price_invalid_dates(api_key_str,
                                     mocked_requests):
-    # TODO
-    pass
+    fc = TimeSeriesFinanceClient("NVDA", api_key_str)
+
+    with pytest.raises(FinanceClientParamError):
+        fc.weekly_price(dt.date(year=2026, month=1, day=1),
+                        dt.date(year=2025, month=1, day=1))
 
 
 def test_weekly_price_no_dates(api_key_str,
