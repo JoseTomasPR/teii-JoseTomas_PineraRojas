@@ -34,6 +34,14 @@ class FinanceClientInvalidData(FinanceClientError):
     pass
 
 
+class FinanceClientParamError(FinanceClientError):
+    """
+    Invalid parameter passed to a finance client method.
+    """
+
+    pass
+
+
 class FinanceClientIOError(FinanceClientError):
     """
     Error reading or writing data file.
