@@ -124,6 +124,26 @@ class TimeSeriesFinanceClient(FinanceClient):
 
         return series
 
+    def highest_weekly_variation(self,
+                                 from_date: Optional[dt.date] = None,
+                                 to_date: Optional[dt.date] = None) -> tuple[dt.date, float, float, float]:
+        """ Return (date, high, low, high-low) for the week with the highest high-low variation. """
+
+        assert self._data_frame is not None
+
+        if from_date is not None and to_date is not None:
+            if from_date > to_date:
+                raise FinanceClientParamError(
+                    f"from_date ({from_date}) must be earlier than or equal to to_date ({to_date})")
+            df = self._data_frame.loc[from_date:to_date]   # type: ignore
+        else:
+            df = self._data_frame
+
+        variation = df['high'] - df['low']
+        idx = variation.idxmax()
+
+        return (idx.date(), float(df.loc[idx, 'high']), float(df.loc[idx, 'low']), float(variation.loc[idx]))
+
     def yearly_dividends(self,
                          from_year: Optional[int] = None,
                          to_year: Optional[int] = None) -> pd.Series:

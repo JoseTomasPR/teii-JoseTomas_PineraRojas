@@ -152,3 +152,38 @@ def test_yearly_dividends_years(api_key_str,
     assert ps.count() == pandas_series_IBM_dividends_filtered.count()
 
     assert_series_equal(ps, pandas_series_IBM_dividends_filtered, check_names=False, check_index_type=False)
+
+
+def test_highest_weekly_variation_invalid_dates(api_key_str,
+                                                mocked_requests):
+    fc = TimeSeriesFinanceClient("NVDA", api_key_str)
+
+    with pytest.raises(FinanceClientParamError):
+        fc.highest_weekly_variation(dt.date(2026, 1, 1), dt.date(2025, 1, 1))
+
+
+def test_highest_weekly_variation_no_dates(api_key_str,
+                                           mocked_requests):
+    fc = TimeSeriesFinanceClient("NVDA", api_key_str)
+
+    date, high, low, variation = fc.highest_weekly_variation()
+
+    # NVDA: week of 2021-07-23 has the highest high-low (split week: pre/post split prices)
+    assert date == dt.date(2021, 7, 23)
+    assert high == pytest.approx(761.68)
+    assert low == pytest.approx(181.64)
+    assert variation == pytest.approx(580.04)
+
+
+def test_highest_weekly_variation_dates(api_key_str,
+                                        mocked_requests):
+    fc = TimeSeriesFinanceClient("NVDA", api_key_str)
+
+    date, high, low, variation = fc.highest_weekly_variation(
+        dt.date(2022, 1, 1), dt.date(2026, 4, 2))
+
+    # NVDA: within 2022-2026 the week of 2024-02-23 has the highest high-low
+    assert date == dt.date(2024, 2, 23)
+    assert high == pytest.approx(823.94)
+    assert low == pytest.approx(662.48)
+    assert variation == pytest.approx(161.46)
