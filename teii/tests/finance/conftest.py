@@ -23,6 +23,8 @@ def mocked_requests():
         response.status_code = 200
         if 'NVDA' in url:
             json_filename = 'TIME_SERIES_WEEKLY_ADJUSTED.NVDA.json'
+        elif 'IBM' in url:
+            json_filename = 'TIME_SERIES_WEEKLY_ADJUSTED.IBM.json'
         elif 'NODATA' in url:
             json_filename = 'TIME_SERIES_WEEKLY_ADJUSTED.NODATA.json'
         else:
@@ -72,4 +74,22 @@ def pandas_series_NVDA_volumes_filtered():
     with resources.as_file(csv_rsrc) as path2csv:
         df = pd.read_csv(path2csv, index_col=0, parse_dates=True)
         ds = df['volume']
+    return ds
+
+
+@fixture(scope='package')
+def pandas_series_IBM_dividends():
+    csv_rsrc = resources.files('teii.finance.data').joinpath('TIME_SERIES_WEEKLY_ADJUSTED.IBM.dividend.unfiltered.csv')
+    with resources.as_file(csv_rsrc) as path2csv:
+        df = pd.read_csv(path2csv, index_col=0)
+        ds = df['dividend']
+    return ds
+
+
+@fixture(scope='package')
+def pandas_series_IBM_dividends_filtered():
+    csv_rsrc = resources.files('teii.finance.data').joinpath('TIME_SERIES_WEEKLY_ADJUSTED.IBM.dividend.filtered.csv')
+    with resources.as_file(csv_rsrc) as path2csv:
+        df = pd.read_csv(path2csv, index_col=0)
+        ds = df['dividend']
     return ds

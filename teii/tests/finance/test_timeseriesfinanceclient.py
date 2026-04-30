@@ -116,3 +116,39 @@ def test_weekly_volume_dates(api_key_str,
     assert ps.count() == pandas_series_NVDA_volumes_filtered.count()
 
     assert_series_equal(ps, pandas_series_NVDA_volumes_filtered)
+
+
+def test_yearly_dividends_invalid_years(api_key_str,
+                                        mocked_requests):
+    fc = TimeSeriesFinanceClient("IBM", api_key_str)
+
+    with pytest.raises(FinanceClientParamError):
+        fc.yearly_dividends(2025, 2020)
+
+
+def test_yearly_dividends_no_years(api_key_str,
+                                   mocked_requests,
+                                   pandas_series_IBM_dividends):
+    fc = TimeSeriesFinanceClient("IBM", api_key_str)
+
+    ps = fc.yearly_dividends()
+
+    assert ps.count() == 28    # 1999 to 2026 (28 years)
+
+    assert ps.count() == pandas_series_IBM_dividends.count()
+
+    assert_series_equal(ps, pandas_series_IBM_dividends, check_names=False, check_index_type=False)
+
+
+def test_yearly_dividends_years(api_key_str,
+                                mocked_requests,
+                                pandas_series_IBM_dividends_filtered):
+    fc = TimeSeriesFinanceClient("IBM", api_key_str)
+
+    ps = fc.yearly_dividends(2020, 2025)
+
+    assert ps.count() == 6    # 2020 to 2025 (6 years)
+
+    assert ps.count() == pandas_series_IBM_dividends_filtered.count()
+
+    assert_series_equal(ps, pandas_series_IBM_dividends_filtered, check_names=False, check_index_type=False)

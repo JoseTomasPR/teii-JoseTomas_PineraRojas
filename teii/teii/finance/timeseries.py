@@ -123,3 +123,20 @@ class TimeSeriesFinanceClient(FinanceClient):
             series = series.loc[from_date:to_date]   # type: ignore
 
         return series
+
+    def yearly_dividends(self,
+                         from_year: Optional[int] = None,
+                         to_year: Optional[int] = None) -> pd.Series:
+        """ Return total annual dividends from 'from_year' to 'to_year'. """
+
+        assert self._data_frame is not None
+
+        series = self._data_frame['dividend']
+
+        if from_year is not None and to_year is not None:
+            if from_year > to_year:
+                raise FinanceClientParamError(
+                    f"from_year ({from_year}) must be earlier than or equal to to_year ({to_year})")
+            series = series[(series.index.year >= from_year) & (series.index.year <= to_year)]
+
+        return series.groupby(series.index.year).sum()
