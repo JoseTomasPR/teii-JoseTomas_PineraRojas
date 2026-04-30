@@ -2,11 +2,15 @@
 
 
 import datetime as dt
+import unittest.mock as mock
 
 import pytest
+import requests
 from pandas.testing import assert_series_equal
 
-from teii.finance import FinanceClientInvalidAPIKey, TimeSeriesFinanceClient
+import teii.finance.finance
+from teii.finance import (FinanceClientAPIError, FinanceClientInvalidAPIKey,
+                          FinanceClientInvalidData, TimeSeriesFinanceClient)
 
 
 def test_constructor_success(api_key_str,
@@ -17,6 +21,24 @@ def test_constructor_success(api_key_str,
 def test_constructor_failure_invalid_api_key():
     with pytest.raises(FinanceClientInvalidAPIKey):
         TimeSeriesFinanceClient("NVDA")
+
+
+def test_constructor_env(monkeypatch, mocked_requests):
+    monkeypatch.setenv("TEII_FINANCE_API_KEY", "testkey")
+    TimeSeriesFinanceClient("NVDA")
+
+
+def test_constructor_unsuccessful_request(api_key_str, monkeypatch):
+    failed_requests = mock.Mock()
+    failed_requests.get.side_effect = requests.exceptions.ConnectionError("test error")
+    monkeypatch.setattr(teii.finance.finance, 'requests', failed_requests)
+    with pytest.raises(FinanceClientAPIError):
+        TimeSeriesFinanceClient("NVDA", api_key_str)
+
+
+def test_constructor_invalid_data(api_key_str, mocked_requests):
+    with pytest.raises(FinanceClientInvalidData):
+        TimeSeriesFinanceClient("NODATA", api_key_str)
 
 
 def test_weekly_price_invalid_dates(api_key_str,

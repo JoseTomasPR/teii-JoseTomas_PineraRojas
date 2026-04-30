@@ -23,6 +23,8 @@ def mocked_requests():
         response.status_code = 200
         if 'NVDA' in url:
             json_filename = 'TIME_SERIES_WEEKLY_ADJUSTED.NVDA.json'
+        elif 'NODATA' in url:
+            json_filename = 'TIME_SERIES_WEEKLY_ADJUSTED.NODATA.json'
         else:
             raise ValueError('Ticker no soportado')
         json_resource = resources.files('teii.finance.data').joinpath(json_filename)
