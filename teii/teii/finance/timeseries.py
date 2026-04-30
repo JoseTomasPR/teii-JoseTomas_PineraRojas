@@ -36,8 +36,12 @@ class TimeSeriesFinanceClient(FinanceClient):
 
         self._build_data_frame()
 
+        self._logger.info(f"TimeSeriesFinanceClient initialized for ticker '{ticker}'")
+
     def _build_data_frame(self) -> None:
         """ Build Panda's DataFrame and format data. """
+
+        self._logger.debug("Building data frame...")
 
         try:
             if not self._json_data:
@@ -63,6 +67,8 @@ class TimeSeriesFinanceClient(FinanceClient):
         except Exception as e:
             raise FinanceClientInvalidData("Error building data frame") from e
 
+        self._logger.info(f"Data frame built: {len(self._data_frame)} rows")
+
     def _build_base_query_url_params(self) -> str:
         """ Return base query URL parameters.
 
@@ -72,11 +78,15 @@ class TimeSeriesFinanceClient(FinanceClient):
             https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=TICKER&outputsize=full&apikey=API_KEY&data_type=json
         """
 
+        self._logger.debug(f"Building query URL params for ticker '{self._ticker}'")
+
         return f"function=TIME_SERIES_WEEKLY_ADJUSTED&symbol={self._ticker}&outputsize=full&apikey={self._api_key}"
 
     @classmethod
     def _build_query_data_key(cls) -> str:
         """ Return data query key. """
+
+        logging.getLogger(__name__).debug("Query data key: 'Weekly Adjusted Time Series'")
 
         return "Weekly Adjusted Time Series"
 
@@ -97,6 +107,8 @@ class TimeSeriesFinanceClient(FinanceClient):
 
         assert self._data_frame is not None
 
+        self._logger.info(f"Weekly price requested [from_date={from_date}, to_date={to_date}]")
+
         series = self._data_frame['aclose']
 
         if from_date is not None and to_date is not None:
@@ -104,6 +116,8 @@ class TimeSeriesFinanceClient(FinanceClient):
                 raise FinanceClientParamError(
                     f"from_date ({from_date}) must be earlier than or equal to to_date ({to_date})")
             series = series.loc[from_date:to_date]   # type: ignore
+
+        self._logger.info(f"Weekly price returned: {series.count()} records")
 
         return series
 
@@ -114,6 +128,8 @@ class TimeSeriesFinanceClient(FinanceClient):
 
         assert self._data_frame is not None
 
+        self._logger.info(f"Weekly volume requested [from_date={from_date}, to_date={to_date}]")
+
         series = self._data_frame['volume']
 
         if from_date is not None and to_date is not None:
@@ -121,6 +137,8 @@ class TimeSeriesFinanceClient(FinanceClient):
                 raise FinanceClientParamError(
                     f"from_date ({from_date}) must be earlier than or equal to to_date ({to_date})")
             series = series.loc[from_date:to_date]   # type: ignore
+
+        self._logger.info(f"Weekly volume returned: {series.count()} records")
 
         return series
 
@@ -130,6 +148,8 @@ class TimeSeriesFinanceClient(FinanceClient):
         """ Return (date, high, low, high-low) for the week with the highest high-low variation. """
 
         assert self._data_frame is not None
+
+        self._logger.info(f"Highest weekly variation requested [from_date={from_date}, to_date={to_date}]")
 
         if from_date is not None and to_date is not None:
             if from_date > to_date:
@@ -142,7 +162,11 @@ class TimeSeriesFinanceClient(FinanceClient):
         variation = df['high'] - df['low']
         idx = variation.idxmax()
 
-        return (idx.date(), float(df.loc[idx, 'high']), float(df.loc[idx, 'low']), float(variation.loc[idx]))
+        result = (idx.date(), float(df.loc[idx, 'high']), float(df.loc[idx, 'low']), float(variation.loc[idx]))
+
+        self._logger.info(f"Highest weekly variation: date={result[0]}, high-low={result[3]:.4f}")
+
+        return result
 
     def yearly_dividends(self,
                          from_year: Optional[int] = None,
@@ -150,6 +174,8 @@ class TimeSeriesFinanceClient(FinanceClient):
         """ Return total annual dividends from 'from_year' to 'to_year'. """
 
         assert self._data_frame is not None
+
+        self._logger.info(f"Yearly dividends requested [from_year={from_year}, to_year={to_year}]")
 
         series = self._data_frame['dividend']
 
@@ -159,4 +185,8 @@ class TimeSeriesFinanceClient(FinanceClient):
                     f"from_year ({from_year}) must be earlier than or equal to to_year ({to_year})")
             series = series[(series.index.year >= from_year) & (series.index.year <= to_year)]
 
-        return series.groupby(series.index.year).sum()
+        result = series.groupby(series.index.year).sum()
+
+        self._logger.info(f"Yearly dividends returned: {result.count()} years")
+
+        return result
