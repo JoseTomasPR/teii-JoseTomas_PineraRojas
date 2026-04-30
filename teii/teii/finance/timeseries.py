@@ -1,4 +1,11 @@
-""" Time Series Finance Client classes """
+"""
+Time Series Finance Client.
+
+Provides :class:`TimeSeriesFinanceClient`, a concrete implementation of
+:class:`~teii.finance.FinanceClient` that wraps the AlphaVantage
+``TIME_SERIES_WEEKLY_ADJUSTED`` endpoint and exposes weekly price,
+volume, dividend, and variation queries as :class:`pandas.Series`.
+"""
 
 
 import datetime as dt
@@ -11,10 +18,35 @@ from teii.finance import FinanceClient, FinanceClientInvalidData, FinanceClientP
 
 
 class TimeSeriesFinanceClient(FinanceClient):
-    """ Wrapper around the AlphaVantage API for Time Series Weekly Adjusted.
+    """Concrete client for the AlphaVantage TIME_SERIES_WEEKLY_ADJUSTED endpoint.
 
-        Source:
-            https://www.alphavantage.co/documentation/ (TIME_SERIES_WEEKLY_ADJUSTED)
+    Downloads and parses the full weekly-adjusted time series for a single
+    ticker symbol and exposes the data through several query methods.
+
+    Parameters
+    ----------
+    ticker : str
+        Stock ticker symbol (e.g. ``'NVDA'``).
+    api_key : str, optional
+        AlphaVantage API key. Falls back to the ``TEII_FINANCE_API_KEY``
+        environment variable when *None*.
+    logging_level : int or str, optional
+        Python logging level for the internal logger.
+        Defaults to ``logging.WARNING``.
+
+    Raises
+    ------
+    FinanceClientInvalidAPIKey
+        If no API key is found.
+    FinanceClientAPIError
+        If the HTTP request to the API fails.
+    FinanceClientInvalidData
+        If the JSON response is missing or empty, or if the internal
+        DataFrame cannot be built from the downloaded data.
+
+    References
+    ----------
+    .. [1] https://www.alphavantage.co/documentation/
     """
 
     _data_field2name_type = {
@@ -30,7 +62,7 @@ class TimeSeriesFinanceClient(FinanceClient):
     def __init__(self, ticker: str,
                  api_key: Optional[str] = None,
                  logging_level: Union[int, str] = logging.WARNING) -> None:
-        """ TimeSeriesFinanceClient constructor. """
+        """Initialise and populate the internal DataFrame from the API."""
 
         super().__init__(ticker, api_key, logging_level)
 
@@ -39,7 +71,18 @@ class TimeSeriesFinanceClient(FinanceClient):
         self._logger.info(f"TimeSeriesFinanceClient initialized for ticker '{ticker}'")
 
     def _build_data_frame(self) -> None:
-        """ Build Panda's DataFrame and format data. """
+        """Build the internal pandas DataFrame from the raw JSON data.
+
+        Converts ``self._json_data`` (a dict of weekly records keyed by
+        date string) into a typed :class:`pandas.DataFrame` with a
+        :class:`~pandas.DatetimeIndex` sorted in ascending order.
+
+        Raises
+        ------
+        FinanceClientInvalidData
+            If the JSON data section is empty or cannot be converted
+            into a valid DataFrame.
+        """
 
         self._logger.debug("Building data frame...")
 
@@ -70,12 +113,13 @@ class TimeSeriesFinanceClient(FinanceClient):
         self._logger.info(f"Data frame built: {len(self._data_frame)} rows")
 
     def _build_base_query_url_params(self) -> str:
-        """ Return base query URL parameters.
+        """Return query-string parameters for the TIME_SERIES_WEEKLY_ADJUSTED endpoint.
 
-        Parameters are dependent on the query type:
-            https://www.alphavantage.co/documentation/
-        URL format:
-            https://www.alphavantage.co/query?function=TIME_SERIES_WEEKLY_ADJUSTED&symbol=TICKER&outputsize=full&apikey=API_KEY&data_type=json
+        Returns
+        -------
+        str
+            URL-encoded parameters including function name, ticker symbol,
+            output size (``full``), and API key.
         """
 
         self._logger.debug(f"Building query URL params for ticker '{self._ticker}'")
@@ -84,14 +128,27 @@ class TimeSeriesFinanceClient(FinanceClient):
 
     @classmethod
     def _build_query_data_key(cls) -> str:
-        """ Return data query key. """
+        """Return the JSON key for the weekly-adjusted time-series data section.
+
+        Returns
+        -------
+        str
+            ``'Weekly Adjusted Time Series'``
+        """
 
         logging.getLogger(__name__).debug("Query data key: 'Weekly Adjusted Time Series'")
 
         return "Weekly Adjusted Time Series"
 
     def _validate_query_data(self) -> None:
-        """ Validate query data. """
+        """Verify that the metadata symbol matches the requested ticker.
+
+        Raises
+        ------
+        FinanceClientInvalidData
+            If the ``'2. Symbol'`` field is absent from the metadata or
+            does not match ``self._ticker``.
+        """
 
         try:
             assert self._json_metadata["2. Symbol"] == self._ticker
@@ -103,7 +160,28 @@ class TimeSeriesFinanceClient(FinanceClient):
     def weekly_price(self,
                      from_date: Optional[dt.date] = None,
                      to_date: Optional[dt.date] = None) -> pd.Series:
-        """ Return weekly close price from 'from_date' to 'to_date'. """
+        """Return weekly adjusted close prices, optionally filtered by date range.
+
+        Parameters
+        ----------
+        from_date : datetime.date, optional
+            Start date (inclusive). When both ``from_date`` and
+            ``to_date`` are given, only weeks within the interval are
+            returned. If either is *None*, no date filtering is applied.
+        to_date : datetime.date, optional
+            End date (inclusive).
+
+        Returns
+        -------
+        pandas.Series
+            Adjusted close prices indexed by :class:`~pandas.Timestamp`.
+            Series name: ``'aclose'``.
+
+        Raises
+        ------
+        FinanceClientParamError
+            If ``from_date > to_date``.
+        """
 
         assert self._data_frame is not None
 
@@ -124,7 +202,28 @@ class TimeSeriesFinanceClient(FinanceClient):
     def weekly_volume(self,
                       from_date: Optional[dt.date] = None,
                       to_date: Optional[dt.date] = None) -> pd.Series:
-        """ Return weekly volume from 'from_date' to 'to_date'. """
+        """Return weekly trading volume, optionally filtered by date range.
+
+        Parameters
+        ----------
+        from_date : datetime.date, optional
+            Start date (inclusive). When both ``from_date`` and
+            ``to_date`` are given, only weeks within the interval are
+            returned. If either is *None*, no date filtering is applied.
+        to_date : datetime.date, optional
+            End date (inclusive).
+
+        Returns
+        -------
+        pandas.Series
+            Weekly trading volumes (integer) indexed by
+            :class:`~pandas.Timestamp`. Series name: ``'volume'``.
+
+        Raises
+        ------
+        FinanceClientParamError
+            If ``from_date > to_date``.
+        """
 
         assert self._data_frame is not None
 
@@ -145,7 +244,31 @@ class TimeSeriesFinanceClient(FinanceClient):
     def highest_weekly_variation(self,
                                  from_date: Optional[dt.date] = None,
                                  to_date: Optional[dt.date] = None) -> tuple[dt.date, float, float, float]:
-        """ Return (date, high, low, high-low) for the week with the highest high-low variation. """
+        """Return the week with the highest intra-week price variation.
+
+        Finds the week that maximises ``high - low`` within the optional
+        date range and returns a tuple with the relevant statistics for
+        that week.
+
+        Parameters
+        ----------
+        from_date : datetime.date, optional
+            Start date (inclusive). If either bound is *None*, no date
+            filtering is applied.
+        to_date : datetime.date, optional
+            End date (inclusive).
+
+        Returns
+        -------
+        tuple of (datetime.date, float, float, float)
+            A 4-tuple ``(date, high, low, high - low)`` where *date* is
+            the week-end date of the maximum-variation week.
+
+        Raises
+        ------
+        FinanceClientParamError
+            If ``from_date > to_date``.
+        """
 
         assert self._data_frame is not None
 
@@ -171,7 +294,31 @@ class TimeSeriesFinanceClient(FinanceClient):
     def yearly_dividends(self,
                          from_year: Optional[int] = None,
                          to_year: Optional[int] = None) -> pd.Series:
-        """ Return total annual dividends from 'from_year' to 'to_year'. """
+        """Return total annual dividends per year, optionally filtered by year range.
+
+        Sums all weekly dividend amounts for each calendar year within
+        the optional year range.
+
+        Parameters
+        ----------
+        from_year : int, optional
+            First year (inclusive). When both ``from_year`` and
+            ``to_year`` are given, only years within the interval are
+            summed. If either is *None*, no year filtering is applied.
+        to_year : int, optional
+            Last year (inclusive).
+
+        Returns
+        -------
+        pandas.Series
+            Annual dividend totals (float) indexed by calendar year
+            (int). Series name: ``'dividend'``.
+
+        Raises
+        ------
+        FinanceClientParamError
+            If ``from_year > to_year``.
+        """
 
         assert self._data_frame is not None
 
